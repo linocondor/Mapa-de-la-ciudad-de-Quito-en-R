@@ -1,0 +1,135 @@
+---
+title: "Mapas en R (OpenStreetMap data with R)"
+output: html_notebook
+---
+
+<b>Ejercicio basado en:</b>
+1. Accessing OpenStreetMap data with R by Dominic Royé
+2. Streetmaps by ggplot2tutor
+
+<b>Links:</b>
+1. https://dominicroye.github.io/en/2018/accessing-openstreetmap-data-with-r/
+2. https://ggplot2tutor.com/tutorials/streetmaps
+
+<h1>Encontrando locales de anime en Quito</h1>
+```{r}
+#instalacion de paquetes de R
+if(!require("osmdata")) install.packages("osmdata")
+if(!require("tidyverse")) install.packages("tidyverse")
+if(!require("sf")) install.packages("sf")
+if(!require("ggmap")) install.packages("ggmap")
+
+#load packages
+library(tidyverse)
+library(osmdata)
+library(sf)
+library(ggmap)
+```
+<h2>Entendiendo las características o opciones que se pueden encontrar en el mapa de OpenStreetMap</h2>
+```{r}
+#ver las caracteristicas 
+head(available_features())
+```
+```{r}
+#amenities / comodidades
+head(available_tags("amenity"))
+```
+```{r}
+#shops / tiendas
+head(available_tags("shop"))
+```
+```{r}
+#geological
+head(available_tags("geological"))
+
+```
+<h2>Haciendo la estructura de la consulta</h2>
+```{r}
+# buildeing a query / haciendo la estructura de la consulta
+consulta <- getbb("Quito") %>%  # crea un cuadro delimitador de la consulta
+      opq() %>%  #funcion principal
+       add_osm_feature("shop", "anime")
+anime <- osmdata_sf(consulta)
+anime
+
+```
+<h2>Realizando la gráfica</h2>
+```{r}
+#graficando con ggplot
+#mapa de fondo
+mad_map <- get_map(getbb("Quito"), maptype = "toner-background")
+#mapa final de la ciudad de quito
+ggmap(mad_map)+
+  geom_sf(data = anime$osm_points,
+          inherit.aes = FALSE,
+          colour = "#238443",
+          fill = "#004529",
+          alpha = .5,
+          size = 4,
+          shape = 21)+
+  labs(x = "", y = "") + theme_void()
+```
+<h1>Haciendo un mapa de las calles de Quito</h1>
+<h2>Haciendo la estructura de la consulta</h2>
+```{r}
+# buildeing a query / haciendo la estructura de la consulta
+consulta_calles <- getbb("Quito") %>%  # crea un cuadro delimitador de la consulta
+      opq() %>%  #funcion principal
+       add_osm_feature(key = "highway", 
+                  value = c("motorway", "primary", 
+                            "secondary", "tertiary"))
+calles <- osmdata_sf(consulta_calles)
+calles
+
+
+
+```
+```{r}
+calles_pequeñas <- getbb("Quito")%>%
+  opq()%>%
+  add_osm_feature(key = "highway", 
+                  value = c("residential", "living_street",
+                            "unclassified",
+                            "service", "footway")) %>%
+  osmdata_sf()
+
+
+```
+```{r}
+rio <- getbb("Quito")%>%
+  opq()%>%
+  add_osm_feature(key = "waterway", value = "river") %>%
+  osmdata_sf()
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = calles$osm_lines,
+          inherit.aes = FALSE,
+          color = "#ffbe7f",
+          
+          size = .4,
+          alpha = .8) + geom_sf(data = calles_pequeñas$osm_lines,
+          inherit.aes = FALSE,
+          color = "#ffbe7f",
+          
+          size = .2,
+          alpha = .8) + geom_sf(data = rio$osm_lines,
+          inherit.aes = FALSE,
+          color = "#ffbe7f",
+          
+          size = .4,
+          alpha = .8)+ 
+  coord_sf(xlim = c(-78.65,-78.34), ylim = c(-0.45,0),expand = FALSE) + theme_void()  +
+  theme(
+    plot.background = element_rect(fill = "#282828")
+  )
+
+
+```
+```{r}
+ggsave("map.png", width = 4, height = 4)
+```
+
+
+
